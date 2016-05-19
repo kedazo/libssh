@@ -723,7 +723,9 @@ int ssh_client_dh_gex_init(ssh_session session)
 	return SSH_ERROR;
   }
   rc = ssh_packet_send(session);
-  SSH_LOG(SSH_LOG_PROTOCOL, "SSH2_MSG_KEX_DH_GEX_REQUEST_OLD sent");
+  SSH_LOG(SSH_LOG_PROTOCOL,
+          "SSH2_MSG_KEX_DH_GEX_REQUEST_OLD (pbits=%d) sent",
+          session->next_crypto->pbits);
   return rc;
 }
 

@@ -94,6 +94,7 @@ SSH_PACKET_CALLBACK(ssh_packet_ignore_callback){
 
 SSH_PACKET_CALLBACK(ssh_packet_dh_reply){
   int rc;
+  enum ssh_dh_state_e next_state = DH_STATE_NEWKEYS_SENT;
   (void)type;
   (void)user;
   SSH_LOG(SSH_LOG_PROTOCOL,"Received SSH_KEXDH_REPLY");
@@ -104,7 +105,6 @@ SSH_PACKET_CALLBACK(ssh_packet_dh_reply){
 			session->session_state,session->dh_handshake_state);
 	goto error;
   }
-  enum ssh_dh_state_e next_state = DH_STATE_NEWKEYS_SENT;
   switch(session->next_crypto->kex_type){
     case SSH_KEX_DH_GROUP1_SHA1:
     case SSH_KEX_DH_GROUP14_SHA1:

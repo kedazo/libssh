@@ -85,7 +85,7 @@
 #define ECDH ""
 #endif
 
-#define KEY_EXCHANGE CURVE25519 ECDH "diffie-hellman-group14-sha1,diffie-hellman-group1-sha1,diffie-hellman-group-exchange-sha1,diffie-hellman-group-exchange-sha256"
+#define KEY_EXCHANGE CURVE25519 ECDH "diffie-hellman-group-exchange-sha256,diffie-hellman-group1-sha1,diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"
 #define KEX_METHODS_SIZE 10
 
 /* NOTE: This is a fixed API and the index is defined by ssh_kex_types_e */
