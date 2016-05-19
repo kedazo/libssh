@@ -346,6 +346,10 @@ const char* ssh_get_kex_algo(ssh_session session) {
             return "diffie-hellman-group1-sha1";
         case SSH_KEX_DH_GROUP14_SHA1:
             return "diffie-hellman-group14-sha1";
+        case SSH_KEX_DH_GROUPEX_SHA1:
+            return "diffie-hellman-group-exchange-sha1";
+        case SSH_KEX_DH_GROUPEX_SHA256:
+            return "diffie-hellman-group-exchange-sha256";
         case SSH_KEX_ECDH_SHA2_NISTP256:
             return "ecdh-sha2-nistp256";
         case SSH_KEX_CURVE25519_SHA256_LIBSSH_ORG:

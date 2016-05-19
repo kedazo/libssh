@@ -85,7 +85,7 @@
 #define ECDH ""
 #endif
 
-#define KEY_EXCHANGE CURVE25519 ECDH "diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"
+#define KEY_EXCHANGE CURVE25519 ECDH "diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"
 #define KEX_METHODS_SIZE 10
 
 /* NOTE: This is a fixed API and the index is defined by ssh_kex_types_e */
@@ -583,10 +583,15 @@ int ssh_kex_select_methods (ssh_session session){
             session->next_crypto->kex_methods[i] = strdup("");
         }
     }
+
     if(strcmp(session->next_crypto->kex_methods[SSH_KEX], "diffie-hellman-group1-sha1") == 0){
       session->next_crypto->kex_type=SSH_KEX_DH_GROUP1_SHA1;
     } else if(strcmp(session->next_crypto->kex_methods[SSH_KEX], "diffie-hellman-group14-sha1") == 0){
       session->next_crypto->kex_type=SSH_KEX_DH_GROUP14_SHA1;
+    } else if(strcmp(session->next_crypto->kex_methods[SSH_KEX], "diffie-hellman-group-exchange-sha1") == 0){
+      session->next_crypto->kex_type=SSH_KEX_DH_GROUPEX_SHA1;
+    } else if(strcmp(session->next_crypto->kex_methods[SSH_KEX], "diffie-hellman-group-exchange-sha256") == 0){
+      session->next_crypto->kex_type=SSH_KEX_DH_GROUPEX_SHA256;
     } else if(strcmp(session->next_crypto->kex_methods[SSH_KEX], "ecdh-sha2-nistp256") == 0){
       session->next_crypto->kex_type=SSH_KEX_ECDH_SHA2_NISTP256;
     } else if(strcmp(session->next_crypto->kex_methods[SSH_KEX], "curve25519-sha256@libssh.org") == 0){
