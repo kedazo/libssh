@@ -250,6 +250,7 @@ end:
 static int dh_handshake(ssh_session session) {
 
   int rc = SSH_AGAIN;
+  enum ssh_dh_state_e next_state = DH_STATE_INIT_SENT;
 
   switch (session->dh_handshake_state) {
     case DH_STATE_INIT:
@@ -257,6 +258,11 @@ static int dh_handshake(ssh_session session) {
         case SSH_KEX_DH_GROUP1_SHA1:
         case SSH_KEX_DH_GROUP14_SHA1:
           rc = ssh_client_dh_init(session);
+          break;
+        case SSH_KEX_DH_GROUPEX_SHA1:
+        case SSH_KEX_DH_GROUPEX_SHA256:
+          next_state = DH_STATE_GEX_REQUEST_SENT;
+          rc = ssh_client_dh_gex_init(session);
           break;
 #ifdef HAVE_ECDH
         case SSH_KEX_ECDH_SHA2_NISTP256:
@@ -276,8 +282,12 @@ static int dh_handshake(ssh_session session) {
           return SSH_ERROR;
       }
 
-      session->dh_handshake_state = DH_STATE_INIT_SENT;
+      session->dh_handshake_state = next_state;
+      break;
     case DH_STATE_INIT_SENT:
+    	/* wait until ssh_packet_dh_reply is called */
+    	break;
+    case DH_STATE_GEX_REQUEST_SENT:
     	/* wait until ssh_packet_dh_reply is called */
     	break;
     case DH_STATE_NEWKEYS_SENT:

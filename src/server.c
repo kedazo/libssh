@@ -65,7 +65,7 @@
             session->common.callbacks->connect_status_function(session->common.callbacks->userdata, status); \
     } while (0)
 
-static int dh_handshake_server(ssh_session session);
+static int ssh_dh_handshake_server(ssh_session session, int reply_type);
 
 
 /**
@@ -153,7 +153,7 @@ static int server_set_kex(ssh_session session) {
  * @brief parse an incoming SSH_MSG_KEXDH_INIT packet and complete
  *        key exchange
  **/
-static int ssh_server_kexdh_init(ssh_session session, ssh_buffer packet){
+static int ssh_server_kexdh_init(ssh_session session, ssh_buffer packet, int reply_type){
     ssh_string e;
     e = ssh_buffer_get_ssh_string(packet);
     if (e == NULL) {
@@ -165,10 +165,91 @@ static int ssh_server_kexdh_init(ssh_session session, ssh_buffer packet){
       session->session_state=SSH_SESSION_STATE_ERROR;
     } else {
       session->dh_handshake_state=DH_STATE_INIT_SENT;
-      dh_handshake_server(session);
+      ssh_dh_handshake_server(session, reply_type);
     }
     ssh_string_free(e);
     return SSH_OK;
+}
+
+static int ssh_server_kexdh_group_init(ssh_session session, ssh_buffer packet)
+{
+    int rc;
+    rc = ssh_dh_generate_p_by_kex_type(session);
+    if (rc < 0) {
+        ssh_set_error(session, SSH_FATAL, "Could not create p number");
+        return SSH_ERROR;
+    }
+    rc = ssh_dh_generate_g(session);
+    if (rc < 0) {
+        ssh_set_error(session, SSH_FATAL, "Could not create g number");
+        return SSH_ERROR;
+    }
+    return ssh_server_kexdh_init(session, packet, SSH2_MSG_KEXDH_REPLY);
+}
+
+static int ssh_server_kexdh_gex_send_group(ssh_session session)
+{
+    int rc;
+    SSH_LOG(SSH_LOG_PROTOCOL,
+        "Preferred size of the group in a client request: %u bits",
+        session->next_crypto->pbits);
+    rc = ssh_dh_generate_p_by_pbits(session);
+    if (rc < 0) {
+        ssh_set_error(session, SSH_FATAL, "Could not create p number");
+        return SSH_ERROR;
+    }
+    rc = ssh_dh_generate_g(session);
+    if (rc < 0) {
+        ssh_set_error(session, SSH_FATAL, "Could not create g number");
+        return SSH_ERROR;
+    }
+    rc = ssh_buffer_pack(session->out_buffer,
+                         "bBB",
+                         SSH2_MSG_KEX_DH_GEX_GROUP,
+                         session->next_crypto->p,
+                         session->next_crypto->g);
+    if (rc != SSH_OK) {
+        ssh_set_error_oom(session);
+        ssh_buffer_reinit(session->out_buffer);
+        return SSH_ERROR;
+    }
+    rc = ssh_packet_send(session);
+    if (rc != SSH_OK) {
+        return SSH_ERROR;
+    }
+    SSH_LOG(SSH_LOG_PACKET, "SSH2_MSG_KEX_DH_GEX_GROUP sent");
+    session->dh_handshake_state = DH_STATE_GEX_REQUEST_SENT;
+    return SSH_OK;
+}
+
+static int ssh_server_kexdh_gex_old_init(ssh_session session, ssh_buffer packet)
+{
+    uint32_t pbits;
+    int rc;
+    rc = ssh_buffer_unpack(packet, "d", &pbits);
+    if (rc != SSH_OK) {
+        ssh_set_error(session, SSH_FATAL, "No n in client request");
+        return SSH_ERROR;
+    }
+    session->next_crypto->pbits = pbits;
+    session->next_crypto->old_gex = 1;
+    return ssh_server_kexdh_gex_send_group(session);
+}
+
+static int ssh_server_kexdh_gex_new_init(ssh_session session, ssh_buffer packet)
+{
+    uint32_t pmin, pbits, pmax;
+    int rc;
+    rc = ssh_buffer_unpack(packet, "ddd", &pmin, &pbits, &pmax);
+    if (rc != SSH_OK) {
+        ssh_set_error(session, SSH_FATAL, "No min|n|max in client request");
+        return SSH_ERROR;
+    }
+    session->next_crypto->pmin = pmin;
+    session->next_crypto->pbits = pbits;
+    session->next_crypto->pmax = pmax;
+    session->next_crypto->old_gex = 0;
+    return ssh_server_kexdh_gex_send_group(session);
 }
 
 SSH_PACKET_CALLBACK(ssh_packet_kexdh_init){
@@ -194,8 +275,13 @@ SSH_PACKET_CALLBACK(ssh_packet_kexdh_init){
   switch(session->next_crypto->kex_type){
       case SSH_KEX_DH_GROUP1_SHA1:
       case SSH_KEX_DH_GROUP14_SHA1:
-        rc=ssh_server_kexdh_init(session, packet);
+        rc = ssh_server_kexdh_group_init(session, packet);
         break;
+      case SSH_KEX_DH_GROUPEX_SHA1:
+      case SSH_KEX_DH_GROUPEX_SHA256:
+        SSH_LOG(SSH_LOG_PACKET,"Received SSH_MSG_KEX_DH_GEX_REQUEST_OLD");
+        rc = ssh_server_kexdh_gex_old_init(session, packet);
+		break;
   #ifdef HAVE_ECDH
       case SSH_KEX_ECDH_SHA2_NISTP256:
         rc = ssh_server_ecdh_init(session, packet);
@@ -217,6 +303,40 @@ error:
   }
 
   return SSH_PACKET_USED;
+}
+
+SSH_PACKET_CALLBACK(ssh_packet_kexdh_gex_init){
+    int rc;
+    (void)type;
+    (void)user;
+    SSH_LOG(SSH_LOG_PACKET,"Received SSH_MSG_KEX_DH_GEX_INIT");
+    if (session->dh_handshake_state != DH_STATE_GEX_REQUEST_SENT) {
+        SSH_LOG(SSH_LOG_RARE, "Invalid state for SSH_MSG_KEX_DH_GEX_INIT");
+        session->session_state = SSH_SESSION_STATE_ERROR;
+        return SSH_PACKET_USED;
+    }
+    rc = ssh_server_kexdh_init(session, packet, SSH2_MSG_KEX_DH_GEX_REPLY);
+    if (rc == SSH_ERROR) {
+        session->session_state = SSH_SESSION_STATE_ERROR;
+    }
+    return SSH_PACKET_USED;
+}
+
+SSH_PACKET_CALLBACK(ssh_packet_kexdh_gex_request){
+    int rc;
+    (void)type;
+    (void)user;
+    SSH_LOG(SSH_LOG_PACKET,"Received SSH_MSG_KEX_DH_GEX_REQUEST");
+    if (session->dh_handshake_state != DH_STATE_INIT) {
+        SSH_LOG(SSH_LOG_RARE,"Invalid state for SSH_MSG_KEX_DH_GEX_REQUEST");
+        session->session_state = SSH_SESSION_STATE_ERROR;
+        return SSH_PACKET_USED;
+    }
+    rc = ssh_server_kexdh_gex_new_init(session, packet);
+    if (rc == SSH_ERROR) {
+        session->session_state = SSH_SESSION_STATE_ERROR;
+    }
+    return SSH_PACKET_USED;
 }
 
 int ssh_get_key_params(ssh_session session, ssh_key *privkey){
@@ -262,7 +382,7 @@ int ssh_get_key_params(ssh_session session, ssh_key *privkey){
     return SSH_OK;
 }
 
-static int dh_handshake_server(ssh_session session) {
+static int ssh_dh_handshake_server(ssh_session session, int reply_type) {
   ssh_key privkey;
   ssh_string sig_blob;
   ssh_string f;
@@ -309,7 +429,7 @@ static int dh_handshake_server(ssh_session session) {
 
   rc = ssh_buffer_pack(session->out_buffer,
                        "bSSS",
-                       SSH2_MSG_KEXDH_REPLY,
+                       reply_type,
                        session->next_crypto->server_pubkey,
                        f,
                        sig_blob);

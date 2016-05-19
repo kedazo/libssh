@@ -67,6 +67,7 @@ typedef BIGNUM*  bignum;
 typedef BN_CTX* bignum_CTX;
 
 #define bignum_new() BN_new()
+#define bignum_dup(num) BN_dup(num)
 #define bignum_free(num) BN_clear_free(num)
 #define bignum_set_word(bn,n) BN_set_word(bn,n)
 #define bignum_bin2bn(bn,datalen,data) BN_bin2bn(bn,datalen,data)
