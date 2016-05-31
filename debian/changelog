@@ -1,3 +1,33 @@
+libssh (0.7.3-99905master-with-gex1) xenial; urgency=medium
+
+  * updated
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 17:08:55 +0200
+
+libssh (0.7.3-99904master-with-gex1) wily; urgency=medium
+
+  * updated
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 17:08:42 +0200
+
+libssh (0.7.3-99903master-with-gex1) vivid; urgency=medium
+
+  * update
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 17:08:22 +0200
+
+libssh (0.7.3-99902master-with-gex1) trusty; urgency=medium
+
+  * update
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 17:08:08 +0200
+
+libssh (0.7.3-99901master-with-gex1) precise; urgency=medium
+
+  * update
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 17:07:36 +0200
+
 libssh (0.7.3-9995master-with-gex1) xenial; urgency=medium
 
   * libssh git master repackaging with group-exchange patches
