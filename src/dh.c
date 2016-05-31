@@ -214,7 +214,7 @@ int ssh_crypto_init(void) {
       return -1;
     }
     bignum_bin2bn(p_groupex_value, P_GROUPEX_LEN, &p_groupex);
-    if (p_group == NULL) {
+    if (p_groupex == NULL) {
       bignum_free(p_group1);
       bignum_free(p_group14);
       p_group1 = NULL;
