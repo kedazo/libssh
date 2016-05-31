@@ -642,17 +642,15 @@ static int ssh_init_pbits(ssh_session session)
             kex->methods[SSH_CRYPT_S_C]);
         return SSH_ERROR;
     }
+
     /* Start with the maximum key length of either cipher */
     nbits = cs_cipher->keysize > sc_cipher->keysize ?
             cs_cipher->keysize : sc_cipher->keysize;
-    /* or maximum key block size of either cipher */
-    if (nbits < cs_cipher->blocksize)
-        nbits = cs_cipher->blocksize;
-    if (nbits < sc_cipher->blocksize)
-        nbits = sc_cipher->blocksize;
-    /* or use the hash size */
-    if (nbits < hlen * 8)
+
+    /* The keys are based on a hash. So cap the key size at hlen bits */
+    if (nbits > hlen * 8) {
         nbits = hlen * 8;
+    }
 
     /* min-max values */
     session->next_crypto->pmin = 2048;
