@@ -161,7 +161,6 @@ static unsigned char p_groupex_value[] = {
 #define P_GROUPEX_LEN 512 /* Size in bytes of the p number for group-exchange */
 
 static unsigned long g_int = 2 ;	/* G is defined as 2 by the ssh2 standards */
-static bignum g;
 static bignum p_group1;
 static bignum p_group14;
 static bignum p_groupex;
@@ -190,7 +189,7 @@ int ssh_get_random(void *where, int len, int strong){
 
 
 /*
- * This inits the values g and p which are used for DH key agreement
+ * This inits the values p group values which are used for DH key agreement
  * FIXME: Make the function thread safe by adding a semaphore or mutex.
  */
 int ssh_crypto_init(void) {
@@ -203,33 +202,21 @@ int ssh_crypto_init(void) {
     }
 #endif
 
-    g = bignum_new();
-    if (g == NULL) {
-      return -1;
-    }
-    bignum_set_word(g,g_int);
-
 #ifdef HAVE_LIBGCRYPT
     bignum_bin2bn(p_group1_value, P_GROUP1_LEN, &p_group1);
     if (p_group1 == NULL) {
-      bignum_free(g);
-      g = NULL;
       return -1;
     }
     bignum_bin2bn(p_group14_value, P_GROUP14_LEN, &p_group14);
     if (p_group14 == NULL) {
-      bignum_free(g);
       bignum_free(p_group1);
-      g = NULL;
       p_group1 = NULL;
       return -1;
     }
     bignum_bin2bn(p_groupex_value, P_GROUPEX_LEN, &p_groupex);
     if (p_group == NULL) {
-      bignum_free(g);
       bignum_free(p_group1);
       bignum_free(p_group14);
-      g = NULL;
       p_group1 = NULL;
       p_group14 = NULL;
       return -1;
@@ -238,17 +225,13 @@ int ssh_crypto_init(void) {
 #elif defined HAVE_LIBCRYPTO
     p_group1 = bignum_new();
     if (p_group1 == NULL) {
-      bignum_free(g);
-      g = NULL;
       return -1;
     }
     bignum_bin2bn(p_group1_value, P_GROUP1_LEN, p_group1);
 
     p_group14 = bignum_new();
     if (p_group14 == NULL) {
-      bignum_free(g);
       bignum_free(p_group1);
-      g = NULL;
       p_group1 = NULL;
       return -1;
     }
@@ -256,10 +239,8 @@ int ssh_crypto_init(void) {
 
     p_groupex = bignum_new();
     if (p_groupex == NULL) {
-      bignum_free(g);
       bignum_free(p_group1);
       bignum_free(p_group14);
-      g = NULL;
       p_group1 = NULL;
       p_group14 = NULL;
       return -1;
@@ -278,8 +259,6 @@ int ssh_crypto_init(void) {
 
 void ssh_crypto_finalize(void) {
   if (ssh_crypto_initialized) {
-    bignum_free(g);
-    g = NULL;
     bignum_free(p_group1);
     p_group1 = NULL;
     bignum_free(p_group14);
@@ -301,8 +280,8 @@ int ssh_dh_generate_x(ssh_session session) {
   if (session->next_crypto->kex_type == SSH_KEX_DH_GROUP1_SHA1) {
     keysize = 1023;
   } else if (session->next_crypto->kex_type == SSH_KEX_DH_GROUPEX_SHA1 ||
-		session->next_crypto->kex_type == SSH_KEX_DH_GROUPEX_SHA256) {
-	keysize = 4095;
+	session->next_crypto->kex_type == SSH_KEX_DH_GROUPEX_SHA256) {
+        keysize = session->next_crypto->pbits / 2 - 1;
   } else {
     keysize = 2047;
   }
@@ -332,7 +311,7 @@ int ssh_dh_generate_y(ssh_session session) {
     keysize = 1023;
   } else if (session->next_crypto->kex_type == SSH_KEX_DH_GROUPEX_SHA1 ||
 		session->next_crypto->kex_type == SSH_KEX_DH_GROUPEX_SHA256) {
-	keysize = 4095;
+        keysize = session->next_crypto->pbits / 2 - 1;
   } else {
     keysize = 2047;
   }
@@ -373,11 +352,11 @@ int ssh_dh_generate_e(ssh_session session) {
   }
 
 #ifdef HAVE_LIBGCRYPT
-  bignum_mod_exp(session->next_crypto->e, g, session->next_crypto->x,
-      session->next_crypto->p);
+  bignum_mod_exp(session->next_crypto->e, session->next_crypto->g,
+      session->next_crypto->x, session->next_crypto->p);
 #elif defined HAVE_LIBCRYPTO
-  bignum_mod_exp(session->next_crypto->e, g, session->next_crypto->x,
-      session->next_crypto->p, ctx);
+  bignum_mod_exp(session->next_crypto->e, session->next_crypto->g,
+      session->next_crypto->x, session->next_crypto->p, ctx);
 #endif
 
 #ifdef DEBUG_CRYPTO
@@ -408,11 +387,11 @@ int ssh_dh_generate_f(ssh_session session) {
   }
 
 #ifdef HAVE_LIBGCRYPT
-  bignum_mod_exp(session->next_crypto->f, g, session->next_crypto->y,
-      session->next_crypto->p);
+  bignum_mod_exp(session->next_crypto->f, session->next_crypto->g,
+      session->next_crypto->y, session->next_crypto->p);
 #elif defined HAVE_LIBCRYPTO
-  bignum_mod_exp(session->next_crypto->f, g, session->next_crypto->y,
-      session->next_crypto->p, ctx);
+  bignum_mod_exp(session->next_crypto->f, session->next_crypto->g,
+      session->next_crypto->y, session->next_crypto->p, ctx);
 #endif
 
 #ifdef DEBUG_CRYPTO
@@ -472,6 +451,12 @@ int ssh_dh_import_p(ssh_session session, ssh_string p_string) {
   if (session->next_crypto->p == NULL) {
     return -1;
   }
+
+  /* use the bits defined by server */
+  session->next_crypto->pbits = bignum_num_bits(session->next_crypto->p);
+  SSH_LOG(SSH_LOG_FUNCTIONS,
+	 "Received p from server, %dbits",
+         session->next_crypto->pbits);
 
 #ifdef DEBUG_CRYPTO
     ssh_print_bignum("p",session->next_crypto->p);
@@ -621,8 +606,8 @@ static int ssh_check_cipher(const char *cipherlist, const char *name){
 static int ssh_init_pbits(ssh_session session)
 {
     struct ssh_kex_struct* kex = session->server ?
-        &session->next_crypto->client_kex :
-        &session->next_crypto->server_kex;
+        &session->next_crypto->server_kex :
+        &session->next_crypto->client_kex;
     struct ssh_cipher_struct* ciphertab = ssh_get_ciphertab();
     struct ssh_cipher_struct* cs_cipher = NULL;
     struct ssh_cipher_struct* sc_cipher = NULL;
@@ -630,6 +615,7 @@ static int ssh_init_pbits(ssh_session session)
         SSH_KEX_DH_GROUPEX_SHA256 ? SHA256_DIGEST_LENGTH : SHA_DIGEST_LENGTH;
     size_t i;
 
+    /* FIXME: this algorithm negotiation must not be there... */
     for (i = 0; ciphertab[i].name; ++i) {
         if (cs_cipher == NULL) {
             if (ssh_check_cipher(kex->methods[SSH_CRYPT_C_S], ciphertab[i].name)) {
@@ -659,13 +645,30 @@ static int ssh_init_pbits(ssh_session session)
     /* Start with the maximum key length of either cipher */
     nbits = cs_cipher->keysize > sc_cipher->keysize ?
             cs_cipher->keysize : sc_cipher->keysize;
-    /* The keys are based on a hash. So cap the key size at hlen bits */
-    if (nbits > hlen * 8) {
+    /* or maximum key block size of either cipher */
+    if (nbits < cs_cipher->blocksize)
+        nbits = cs_cipher->blocksize;
+    if (nbits < sc_cipher->blocksize)
+        nbits = sc_cipher->blocksize;
+    /* or use the hash size */
+    if (nbits < hlen * 8)
         nbits = hlen * 8;
-    }
-    /* DH group size */
-    session->next_crypto->pbits = 512 << ((nbits - 1) / 64);
-    session->next_crypto->old_gex = 1;
+
+    /* min-max values */
+    session->next_crypto->pmin = 2048;
+    session->next_crypto->pmax = 8192;
+
+    /* DH group size (values from openssh/dh.c) */
+    if (nbits <= 112)
+        session->next_crypto->pbits = 2048;
+    else if (nbits <= 128)
+        session->next_crypto->pbits = 3072;
+    else if (nbits <= 192)
+        session->next_crypto->pbits = 7680;
+    else
+        session->next_crypto->pbits = 8192;
+
+    session->next_crypto->old_gex = 0;
     return SSH_OK;
 }
 
@@ -689,6 +692,10 @@ static int ssh_client_dh_init_by_type(ssh_session session, int type)
     return SSH_ERROR;
   }
   rc = ssh_packet_send(session);
+  SSH_LOG(SSH_LOG_PROTOCOL, "%s sent.",
+	type == SSH2_MSG_KEX_DH_GEX_INIT ?
+	"SSH2_MSG_KEX_DH_GEX_INIT" : 
+        "SSH2_MSG_KEXDH_INIT");
   return rc;
 }
 
@@ -716,19 +723,33 @@ int ssh_client_dh_gex_init(ssh_session session)
 	ssh_set_error(session, SSH_FATAL, "Cannot init pbits");
 	return SSH_ERROR;
   }
+
+  #if 0
   rc = ssh_buffer_pack(session->out_buffer, "bd",
                        SSH2_MSG_KEX_DH_GEX_REQUEST_OLD,
                        session->next_crypto->pbits);
+  #endif
+
+  rc = ssh_buffer_pack(session->out_buffer, "bddd",
+                       SSH2_MSG_KEX_DH_GEX_REQUEST,
+                       session->next_crypto->pmin,
+                       session->next_crypto->pbits,
+                       session->next_crypto->pmax);
+
   if (rc != SSH_OK) {
+
 	return SSH_ERROR;
   }
   rc = ssh_packet_send(session);
   SSH_LOG(SSH_LOG_PROTOCOL,
-          "SSH2_MSG_KEX_DH_GEX_REQUEST_OLD (pbits=%d) sent",
-          session->next_crypto->pbits);
+          "SSH2_MSG_KEX_DH_GEX_REQUEST(%d<%d<%d) sent",
+          session->next_crypto->pmin,
+          session->next_crypto->pbits,
+          session->next_crypto->pmax);
   return rc;
 }
 
+/* this method is called when server sent SSH_MSG_KEX_DH_GEX_GROUP */
 int ssh_client_dh_gex_reply(ssh_session session, ssh_buffer packet)
 {
   ssh_string num;
@@ -757,6 +778,8 @@ int ssh_client_dh_gex_reply(ssh_session session, ssh_buffer packet)
 	ssh_set_error(session, SSH_FATAL, "Cannot import g number");
 	return SSH_ERROR;
   }
+  SSH_LOG(SSH_LOG_PROTOCOL,
+	  "SSH_MSG_KEX_DH_GEX_GROUP received (p,g)");
   return ssh_client_dh_init_by_type(session, SSH2_MSG_KEX_DH_GEX_INIT);
 }
 
