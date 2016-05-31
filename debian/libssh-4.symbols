@@ -114,7 +114,6 @@ libssh.so.4 libssh-4 #MINVER#
  ssh_bind_set_fd@Base 0.3.4
  ssh_blocking_flush@Base 0.5.0
  ssh_buffer_free@Base 0.5.0
- ssh_buffer_get_begin@Base 0.5.0
  ssh_buffer_get_len@Base 0.5.0
  ssh_buffer_new@Base 0.5.0
  ssh_channel_accept_forward@Base 0.5.4-2~
