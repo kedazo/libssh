@@ -1,3 +1,33 @@
+libssh (0.7.3-9995master-with-gex1) xenial; urgency=medium
+
+  * libssh git master repackaging with group-exchange patches
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 16:56:20 +0200
+
+libssh (0.7.3-9994master-with-gex1) wily; urgency=medium
+
+  * libssh git master repackaging with group-exchange patches
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 16:56:00 +0200
+
+libssh (0.7.3-9993master-with-gex1) vivid; urgency=medium
+
+  * libssh git master repackaging with group-exchange patches
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 16:55:39 +0200
+
+libssh (0.7.3-9992master-with-gex1) trusty; urgency=medium
+
+  * libssh git master repackaging with group-exchange patches
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 16:55:13 +0200
+
+libssh (0.7.3-9991master-with-gex1) precise; urgency=medium
+
+  * libssh git master repackaging with group-exchange patches
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Tue, 31 May 2016 16:53:27 +0200
+
 libssh (0.7.3-34xenial) xenial; urgency=medium
 
   * CRASH FIX: xenial
