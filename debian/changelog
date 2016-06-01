@@ -1,3 +1,38 @@
+libssh (0.7.3-99920master-with-gex11) xenial; urgency=medium
+
+  * Team upload.
+  * xenial packaging
+
+ -- David Kedves <kedazo@gmail.com>  Wed, 01 Jun 2016 07:37:36 +0200
+
+libssh (0.7.3-99920master-with-gex10) wily; urgency=medium
+
+  * Team upload.
+  * wily packaging
+
+ -- David Kedves <kedazo@gmail.com>  Wed, 01 Jun 2016 07:37:35 +0200
+
+libssh (0.7.3-99920master-with-gex9) vivid; urgency=medium
+
+  * Team upload.
+  * vivid packaging
+
+ -- David Kedves <kedazo@gmail.com>  Wed, 01 Jun 2016 07:37:33 +0200
+
+libssh (0.7.3-99920master-with-gex8) trusty; urgency=medium
+
+  * Team upload.
+  * trusty packaging
+
+ -- David Kedves <kedazo@gmail.com>  Wed, 01 Jun 2016 07:37:32 +0200
+
+libssh (0.7.3-99920master-with-gex7) precise; urgency=medium
+
+  * Team upload.
+  * precise packaging
+
+ -- David Kedves <kedazo@gmail.com>  Wed, 01 Jun 2016 07:37:31 +0200
+
 libssh (0.7.3-99920master-with-gex6) xenial; urgency=medium
 
   * Team upload.
