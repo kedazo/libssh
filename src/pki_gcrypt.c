@@ -1403,17 +1403,34 @@ int pki_export_pubkey_rsa1(const ssh_key key,
                            char *rsa1,
                            size_t rsa1_len)
 {
-    gpg_error_t err;
+    gcry_sexp_t sexp;
     int rsa_size;
-    bignum E, N;
+    bignum b;
     char *e, *n;
 
-    err = gcry_sexp_extract_param(key->rsa, NULL, "en", &E, &N, NULL);
-    if (err != 0) {
+    sexp = gcry_sexp_find_token(key->rsa, "e", 0);
+    if (sexp == NULL) {
         return SSH_ERROR;
     }
-    e = bignum_bn2dec(E);
-    n = bignum_bn2dec(N);
+    b = gcry_sexp_nth_mpi(sexp, 1, GCRYMPI_FMT_USG);
+    gcry_sexp_release(sexp);
+    if (b == NULL) {
+        return SSH_ERROR;
+    }
+    e = bignum_bn2dec(b);
+
+    sexp = gcry_sexp_find_token(key->rsa, "n", 0);
+    if (sexp == NULL) {
+        SAFE_FREE(e);
+        return SSH_ERROR;
+    }
+    b = gcry_sexp_nth_mpi(sexp, 1, GCRYMPI_FMT_USG);
+    gcry_sexp_release(sexp);
+    if (b == NULL) {
+        SAFE_FREE(e);
+        return SSH_ERROR;
+    }
+    n = bignum_bn2dec(b);
 
     rsa_size = (gcry_pk_get_nbits(key->rsa) + 7) / 8;
 
@@ -1422,8 +1439,6 @@ int pki_export_pubkey_rsa1(const ssh_key key,
              host, rsa_size << 3, e, n);
     SAFE_FREE(e);
     SAFE_FREE(n);
-    bignum_free(E);
-    bignum_free(N);
 
     return SSH_OK;
 }
