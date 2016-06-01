@@ -1,6 +1,6 @@
 #!/bin/bash
 # For changelog entries & signing
-export GPGKEY=9BB3D8B0
+export GPGKEY=BDD65CD6
 export DEBEMAIL="kedazo@gmail.com"
 export DEBFULLNAME="David Kedves"
 
