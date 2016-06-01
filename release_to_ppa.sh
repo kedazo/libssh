@@ -13,4 +13,4 @@ done
 
 # Upload
 cd ..
-put ppa:kedazo/libssh-master-group-exchange libssh*.changes
+dput ppa:kedazo/libssh-master-group-exchange libssh*.changes
