@@ -1418,6 +1418,7 @@ int pki_export_pubkey_rsa1(const ssh_key key,
         return SSH_ERROR;
     }
     e = bignum_bn2dec(b);
+    bignum_free(b);
 
     sexp = gcry_sexp_find_token(key->rsa, "n", 0);
     if (sexp == NULL) {
@@ -1431,6 +1432,7 @@ int pki_export_pubkey_rsa1(const ssh_key key,
         return SSH_ERROR;
     }
     n = bignum_bn2dec(b);
+    bignum_free(b);
 
     rsa_size = (gcry_pk_get_nbits(key->rsa) + 7) / 8;
 
