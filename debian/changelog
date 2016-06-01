@@ -1,3 +1,9 @@
+libssh (0.7.3-99920master-with-gex1) UNRELEASED; urgency=medium
+
+  * UPDATE FOR EASIER RELEASE
+
+ -- David Kedves <david.kedves@borgcollective.eu>  Wed, 01 Jun 2016 07:34:30 +0200
+
 libssh (0.7.3-99910master-with-gex1) xenial; urgency=medium
 
   * reverted an incompatible change
